@@ -39,7 +39,11 @@ async function executeCheck(
   storage: StorageAdapter,
 ): Promise<CheckVibeUpdateResult | null> {
   const onError = reporter(options.onError);
-  const metadata = getRuntimeMetadata(options.locale, onError);
+  const metadata = getRuntimeMetadata(
+    options.locale,
+    onError,
+    options.runtimeMetadata,
+  );
   if (metadata === null) return null;
   const result = await checkApi({
     appId: options.appId,
@@ -69,6 +73,7 @@ export function VibeUpdate({
   theme,
   stringOverrides,
   locale,
+  runtimeMetadata,
   onError,
   onOpenStore,
   enabled = true,
@@ -95,7 +100,7 @@ export function VibeUpdate({
     const report = reporter((error) => latestOnError.current?.(error));
 
     const runCheck = async (mayPresent: boolean): Promise<RuntimeMetadata | null> => {
-      const metadata = getRuntimeMetadata(locale, report);
+      const metadata = getRuntimeMetadata(locale, report, runtimeMetadata);
       if (metadata === null) return null;
       const result = await checkApi({ appId, apiUrl, timeoutMs, metadata, storage, onError: report, signal: controller.signal });
       if (!active || result === null || !mayPresent || presentedThisMount.current || !mounted.current) return metadata;
@@ -128,7 +133,7 @@ export function VibeUpdate({
     };
 
     const foreground = async (): Promise<void> => {
-      const metadata = getRuntimeMetadata(locale, report);
+      const metadata = getRuntimeMetadata(locale, report, runtimeMetadata);
       if (metadata === null) return;
       const keys = createStorageKeys(appId, metadata.platform, metadata.buildNumber, 0);
       try {
@@ -150,7 +155,20 @@ export function VibeUpdate({
       controller.abort();
       subscription.remove();
     };
-  }, [apiUrl, appId, enabled, foregroundIntervalMs, locale, storage, timeoutMs]);
+  }, [
+    apiUrl,
+    appId,
+    enabled,
+    foregroundIntervalMs,
+    locale,
+    runtimeMetadata?.buildNumber,
+    runtimeMetadata?.locale,
+    runtimeMetadata?.nativeApplicationId,
+    runtimeMetadata?.platform,
+    runtimeMetadata?.version,
+    storage,
+    timeoutMs,
+  ]);
 
   const openStore = async (url: string): Promise<void> => {
     try {
@@ -162,13 +180,26 @@ export function VibeUpdate({
     }
   };
 
+  const openLink = async (url: string): Promise<void> => {
+    try {
+      const protocol = new URL(url).protocol;
+      if (protocol !== 'https:' && protocol !== 'mailto:') {
+        throw new Error('Link URL must use HTTPS or mailto.');
+      }
+      await Linking.openURL(url);
+    } catch (cause) {
+      try { latestOnError.current?.({ code: 'link-open', message: 'VibeUpdate could not open the changelog link.', cause }); } catch { /* Fail open. */ }
+    }
+  };
+
   if (!enabled || presentation === null) return null;
   return (
     <UpdateDialog
       presentation={presentation}
-      locale={locale ?? getRuntimeMetadata(undefined)?.locale ?? 'en'}
+      locale={locale ?? getRuntimeMetadata(undefined, undefined, runtimeMetadata)?.locale ?? 'en'}
       onDismiss={() => { setPresentation(null); }}
       onOpenStore={openStore}
+      onOpenLink={openLink}
       {...(theme === undefined ? {} : { theme })}
       {...(stringOverrides === undefined ? {} : { stringOverrides })}
     />

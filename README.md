@@ -54,6 +54,7 @@ The initial request starts in an effect after the first render. At most one Vibe
 | `theme` | `VibeUpdateThemeOverride` | system light/dark | Local visual token overrides. |
 | `stringOverrides` | `VibeUpdateStringOverrides` | resolved UI language | Local UI-copy overrides applied last. |
 | `locale` | `string` | device locale | Locale override for the API request and built-in UI. |
+| `runtimeMetadata` | `Partial<RuntimeMetadata>` | native Expo values | Overrides application ID, build, version, platform, or locale for Expo Go/preview environments. |
 | `onError` | `(error) => void` | none | Receives local errors without changing fail-open behavior. |
 | `onOpenStore` | `(url) => void \| Promise<void>` | `Linking.openURL` | Overrides the validated HTTPS store-opening action. |
 | `enabled` | `boolean` | `true` | Disables checks and UI when false. |
@@ -65,6 +66,19 @@ import { checkVibeUpdate } from '@vibelabsdotto/vibeupdate';
 
 const result = await checkVibeUpdate({ appId: 'app_xxx' });
 // null means fail-open or no trustworthy current response.
+```
+
+Expo Go exposes the Expo host app's native metadata rather than your app's future store identity. For accurate checks there, pass the values you intend to publish:
+
+```tsx
+<VibeUpdate
+  appId="app_xxx"
+  runtimeMetadata={{
+    nativeApplicationId: 'com.example.app',
+    buildNumber: 42,
+    version: '1.2.0',
+  }}
+/>
 ```
 
 ## Theme
@@ -125,7 +139,7 @@ Keys are namespaced with `@vibelabsdotto/vibeupdate:v1` and scoped by app, platf
 
 ## Errors and fail-open behavior
 
-`onError` receives a `VibeUpdateError` with one of these codes: `invalid-metadata`, `invalid-config`, `network`, `timeout`, `http`, `invalid-response`, `storage`, or `store-open`.
+`onError` receives a `VibeUpdateError` with one of these codes: `invalid-metadata`, `invalid-config`, `network`, `timeout`, `http`, `invalid-response`, `storage`, `store-open`, or `link-open`.
 
 ```tsx
 <VibeUpdate

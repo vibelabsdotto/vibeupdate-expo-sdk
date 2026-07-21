@@ -9,6 +9,7 @@ const boundary = vi.hoisted(() => ({
   appStateListener: undefined as ((state: string) => void) | undefined,
   listenerRemovals: 0,
   checkApi: vi.fn(),
+  openURL: vi.fn(),
   data: new Map<string, string>(),
 }));
 
@@ -35,13 +36,15 @@ vi.mock('react-native', () => ({
       } };
     },
   },
-  Linking: { openURL: vi.fn(async () => undefined) },
+  Linking: { openURL: boundary.openURL },
 }));
 
 describe('VibeUpdate mount behavior', () => {
   beforeEach(() => {
     boundary.data.clear();
     boundary.checkApi.mockReset();
+    boundary.openURL.mockReset();
+    boundary.openURL.mockResolvedValue(undefined);
     boundary.listenerRemovals = 0;
     boundary.appStateListener = undefined;
     boundary.checkApi.mockResolvedValue({ response: optionalResponse, checkedAt: 1, fromCache: false });
@@ -64,6 +67,23 @@ describe('VibeUpdate mount behavior', () => {
     const { VibeUpdate } = await import('../src/VibeUpdate.js');
     await act(async () => { TestRenderer.create(<VibeUpdate appId="app_x" enabled={false} />); });
     expect(boundary.checkApi).not.toHaveBeenCalled();
+  });
+
+  it('reports rejected changelog links without throwing into the host app', async () => {
+    boundary.openURL.mockRejectedValueOnce(new Error('cannot open'));
+    const onError = vi.fn();
+    const { VibeUpdate } = await import('../src/VibeUpdate.js');
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<VibeUpdate appId="app_x" onError={onError} />);
+    });
+    const dialog = renderer.root.findByType('UpdateDialog' as React.ElementType);
+    await expect(
+      act(async () => dialog.props.onOpenLink('https://example.com/docs')),
+    ).resolves.toBeUndefined();
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'link-open' }),
+    );
   });
 
   it('starts a fresh lifecycle and removes the old listener when appId changes', async () => {

@@ -44,4 +44,52 @@ describe('runtime metadata', () => {
     const { getRuntimeMetadata } = await import('../src/metadata.js');
     expect(getRuntimeMetadata('fr-CA')?.locale).toBe('fr-CA');
   });
+
+  it('accepts explicit runtime values for Expo Go and development clients', async () => {
+    application.applicationId = null;
+    application.nativeApplicationVersion = null;
+    application.nativeBuildVersion = null;
+    const { getRuntimeMetadata } = await import('../src/metadata.js');
+    expect(
+      getRuntimeMetadata(undefined, undefined, {
+        nativeApplicationId: 'com.example.preview',
+        buildNumber: 7,
+        version: '1.0-preview',
+      }),
+    ).toEqual({
+      platform: 'ios',
+      nativeApplicationId: 'com.example.preview',
+      buildNumber: 7,
+      version: '1.0-preview',
+      locale: 'de-DE',
+    });
+  });
+
+  it.each([
+    ['nativeApplicationId', { nativeApplicationId: 42 }],
+    ['version', { version: { value: '1.0' } }],
+    ['locale', { locale: 42 }],
+    ['platform', { platform: 'web' }],
+    ['buildNumber', { buildNumber: '7' }],
+  ])('fails open for malformed JavaScript override %s', async (_field, value) => {
+    const onError = vi.fn();
+    const { getRuntimeMetadata } = await import('../src/metadata.js');
+    expect(() =>
+      getRuntimeMetadata(
+        undefined,
+        onError,
+        value as unknown as Parameters<typeof getRuntimeMetadata>[2],
+      ),
+    ).not.toThrow();
+    expect(
+      getRuntimeMetadata(
+        undefined,
+        onError,
+        value as unknown as Parameters<typeof getRuntimeMetadata>[2],
+      ),
+    ).toBeNull();
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'invalid-metadata' }),
+    );
+  });
 });

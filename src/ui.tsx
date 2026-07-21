@@ -23,6 +23,7 @@ export interface UpdateDialogProps {
   locale: string;
   onDismiss: () => void;
   onOpenStore: (url: string) => void | Promise<void>;
+  onOpenLink?: (url: string) => void | Promise<void>;
   theme?: VibeUpdateThemeOverride;
   stringOverrides?: VibeUpdateStringOverrides;
 }
@@ -32,23 +33,24 @@ interface InlineProps {
   style?: StyleProp<TextStyle>;
   color: string;
   accent: string;
+  onOpenLink: (url: string) => void | Promise<void>;
 }
 
-function Inline({ nodes, style, color, accent }: InlineProps): React.JSX.Element {
+function Inline({ nodes, style, color, accent, onOpenLink }: InlineProps): React.JSX.Element {
   return (
     <Text style={[{ color }, style]} allowFontScaling maxFontSizeMultiplier={2}>
       {nodes.map((node, index) => {
         if (node.type === 'text') return node.text;
-        if (node.type === 'bold') return <Inline key={index} nodes={node.children} color={color} accent={accent} style={styles.bold} />;
-        if (node.type === 'italic') return <Inline key={index} nodes={node.children} color={color} accent={accent} style={styles.italic} />;
+        if (node.type === 'bold') return <Inline key={index} nodes={node.children} color={color} accent={accent} onOpenLink={onOpenLink} style={styles.bold} />;
+        if (node.type === 'italic') return <Inline key={index} nodes={node.children} color={color} accent={accent} onOpenLink={onOpenLink} style={styles.italic} />;
         return (
           <Text
             key={index}
             accessibilityRole="link"
-            onPress={() => { void Linking.openURL(node.url); }}
+            onPress={() => { void onOpenLink(node.url); }}
             style={{ color: accent, textDecorationLine: 'underline' }}
           >
-            <Inline nodes={node.children} color={accent} accent={accent} />
+            <Inline nodes={node.children} color={accent} accent={accent} onOpenLink={onOpenLink} />
           </Text>
         );
       })}
@@ -56,13 +58,13 @@ function Inline({ nodes, style, color, accent }: InlineProps): React.JSX.Element
   );
 }
 
-function Markdown({ markdown, text, accent }: { markdown: string; text: string; accent: string }): React.JSX.Element {
+function Markdown({ markdown, text, accent, onOpenLink }: { markdown: string; text: string; accent: string; onOpenLink: (url: string) => void | Promise<void> }): React.JSX.Element {
   const blocks = parseMarkdown(markdown);
   return (
     <View accessible={false}>
       {blocks.map((block, index) => {
         if (block.type === 'heading') {
-          return <Inline key={index} nodes={block.children} color={text} accent={accent} style={[styles.heading, block.level > 2 && styles.smallHeading]} />;
+          return <Inline key={index} nodes={block.children} color={text} accent={accent} onOpenLink={onOpenLink} style={[styles.heading, block.level > 2 && styles.smallHeading]} />;
         }
         if (block.type === 'list') {
           return (
@@ -70,13 +72,13 @@ function Markdown({ markdown, text, accent }: { markdown: string; text: string; 
               {block.items.map((item, itemIndex) => (
                 <View key={itemIndex} style={styles.listRow}>
                   <Text style={[styles.bullet, { color: text }]} allowFontScaling>{block.ordered ? `${itemIndex + 1}.` : '•'}</Text>
-                  <Inline nodes={item} color={text} accent={accent} style={styles.body} />
+                  <Inline nodes={item} color={text} accent={accent} onOpenLink={onOpenLink} style={styles.body} />
                 </View>
               ))}
             </View>
           );
         }
-        return <Inline key={index} nodes={block.children} color={text} accent={accent} style={styles.body} />;
+        return <Inline key={index} nodes={block.children} color={text} accent={accent} onOpenLink={onOpenLink} style={styles.body} />;
       })}
     </View>
   );
@@ -87,6 +89,9 @@ export function UpdateDialog({
   locale,
   onDismiss,
   onOpenStore,
+  onOpenLink = async (url: string) => {
+    try { await Linking.openURL(url); } catch { /* Fail open for direct internal use. */ }
+  },
   theme: themeOverride,
   stringOverrides,
 }: UpdateDialogProps): React.JSX.Element {
@@ -150,7 +155,7 @@ export function UpdateDialog({
                 <Text style={[styles.version, { color: theme.mutedText }]} allowFontScaling maxFontSizeMultiplier={1.8}>{strings.versionLabel} {version}</Text>
               </View>
               <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator>
-                <Markdown markdown={markdown} text={theme.text} accent={theme.accent} />
+                <Markdown markdown={markdown} text={theme.text} accent={theme.accent} onOpenLink={onOpenLink} />
               </ScrollView>
               <View style={styles.actions}>
                 {!required && (

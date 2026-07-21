@@ -13,18 +13,60 @@ function invalid(message: string, onError?: (error: VibeUpdateError) => void): n
 export function getRuntimeMetadata(
   localeOverride?: string,
   onError?: (error: VibeUpdateError) => void,
+  overrides?: Partial<RuntimeMetadata>,
 ): RuntimeMetadata | null {
-  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
-    return invalid(`Unsupported platform: ${Platform.OS}. Only iOS and Android are supported.`, onError);
+  const platformValue: unknown = overrides?.platform ?? Platform.OS;
+  if (platformValue !== 'ios' && platformValue !== 'android') {
+    return invalid('Only iOS and Android runtime metadata is supported.', onError);
   }
-  const applicationId = Application.applicationId?.trim();
-  const version = Application.nativeApplicationVersion?.trim();
-  const rawBuild = Application.nativeBuildVersion?.trim();
-  const buildNumber = rawBuild === undefined ? Number.NaN : Number(rawBuild);
-  const locale = localeOverride?.trim() || getLocales()[0]?.languageTag?.trim();
-  if (!applicationId) return invalid('expo-application did not provide an applicationId.', onError);
-  if (!version) return invalid('expo-application did not provide a native application version.', onError);
-  if (!Number.isSafeInteger(buildNumber) || buildNumber <= 0) return invalid('The native build version must be a positive integer.', onError);
-  if (!locale) return invalid('expo-localization did not provide a device locale.', onError);
-  return { platform: Platform.OS, nativeApplicationId: applicationId, buildNumber, version, locale };
+  const applicationIdValue: unknown =
+    overrides?.nativeApplicationId !== undefined
+      ? overrides.nativeApplicationId
+      : Application.applicationId;
+  const versionValue: unknown =
+    overrides?.version !== undefined
+      ? overrides.version
+      : Application.nativeApplicationVersion;
+  const localeValue: unknown =
+    localeOverride !== undefined
+      ? localeOverride
+      : overrides?.locale !== undefined
+        ? overrides.locale
+        : getLocales()[0]?.languageTag;
+  const hasBuildOverride = overrides?.buildNumber !== undefined;
+  const buildValue: unknown = hasBuildOverride
+    ? overrides.buildNumber
+    : Application.nativeBuildVersion;
+
+  if (typeof applicationIdValue !== 'string' || !applicationIdValue.trim()) {
+    return invalid('expo-application did not provide a valid applicationId.', onError);
+  }
+  if (typeof versionValue !== 'string' || !versionValue.trim()) {
+    return invalid(
+      'expo-application did not provide a valid native application version.',
+      onError,
+    );
+  }
+  if (typeof localeValue !== 'string' || !localeValue.trim()) {
+    return invalid('expo-localization did not provide a valid device locale.', onError);
+  }
+  if (hasBuildOverride && typeof buildValue !== 'number') {
+    return invalid('The buildNumber override must be a number.', onError);
+  }
+  const buildNumber =
+    typeof buildValue === 'number'
+      ? buildValue
+      : typeof buildValue === 'string' && buildValue.trim()
+        ? Number(buildValue.trim())
+        : Number.NaN;
+  if (!Number.isSafeInteger(buildNumber) || buildNumber <= 0) {
+    return invalid('The native build version must be a positive integer.', onError);
+  }
+  return {
+    platform: platformValue,
+    nativeApplicationId: applicationIdValue.trim(),
+    buildNumber,
+    version: versionValue.trim(),
+    locale: localeValue.trim(),
+  };
 }

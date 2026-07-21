@@ -54,7 +54,8 @@ export type VibeUpdateErrorCode =
   | 'http'
   | 'invalid-response'
   | 'storage'
-  | 'store-open';
+  | 'store-open'
+  | 'link-open';
 
 export interface VibeUpdateError {
   code: VibeUpdateErrorCode;
@@ -100,6 +101,7 @@ export interface VibeUpdateProps {
   theme?: VibeUpdateThemeOverride;
   stringOverrides?: VibeUpdateStringOverrides;
   locale?: string;
+  runtimeMetadata?: Partial<RuntimeMetadata>;
   onError?: (error: VibeUpdateError) => void;
   onOpenStore?: (url: string) => void | Promise<void>;
   enabled?: boolean;
@@ -111,6 +113,7 @@ export interface CheckVibeUpdateOptions {
   timeoutMs?: number;
   storage?: StorageAdapter;
   locale?: string;
+  runtimeMetadata?: Partial<RuntimeMetadata>;
   onError?: (error: VibeUpdateError) => void;
 }
 
