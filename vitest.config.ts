@@ -1,0 +1,11 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    globals: true,
+    mockReset: true,
+    restoreMocks: true,
+    include: ['test/**/*.test.{ts,tsx}'],
+  },
+});

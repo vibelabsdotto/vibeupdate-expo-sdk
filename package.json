@@ -1,0 +1,73 @@
+{
+  "name": "@vibelabsdotto/vibeupdate",
+  "version": "0.1.0",
+  "description": "Fail-open update prompts and localized changelogs for Expo and React Native apps.",
+  "license": "MIT",
+  "author": "VibeLabs",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "react-native": "./dist/esm/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "react-native": "./dist/esm/index.js",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/esm/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "clean": "node ./scripts/clean.mjs",
+    "lint": "eslint src test vitest.config.ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "app-update",
+    "changelog"
+  ],
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=2.2.0 <4",
+    "expo": ">=54.0.0 <58.0.0",
+    "expo-application": ">=7.0.0 <58.0.0",
+    "expo-localization": ">=17.0.0 <58.0.0",
+    "react": ">=19.1.0 <20",
+    "react-native": ">=0.81.0 <0.87.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@types/react": "19.2.17",
+    "@types/react-test-renderer": "19.1.0",
+    "eslint": "9.39.5",
+    "expo": "57.0.7",
+    "expo-application": "57.0.2",
+    "expo-localization": "57.0.1",
+    "globals": "16.5.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-test-renderer": "19.2.3",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
